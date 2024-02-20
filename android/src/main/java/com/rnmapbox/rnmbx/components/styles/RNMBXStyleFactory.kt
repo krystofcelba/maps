@@ -23,7 +23,7 @@ import com.mapbox.maps.extension.style.layers.properties.generated.*
 import com.mapbox.maps.extension.style.types.StyleTransition
 
 import com.mapbox.maps.extension.style.light.LightPosition
-import com.rnmapbox.rnmbx.utils.DownloadMapImageTask.OnAllImagesLoaded
+import com.rnmapbox.rnmbx.utils.DownloadMapImageCoroutine
 import com.rnmapbox.rnmbx.utils.Logger.e
 
 import com.rnmapbox.rnmbx.v11compat.light.*;
@@ -71,7 +71,8 @@ object RNMBXStyleFactory {
             "fillTranslateAnchor" ->
               setFillTranslateAnchor(layer, styleValue)
             "fillPattern" ->
-              style.addImage(styleValue!!, styleKey, object : OnAllImagesLoaded {
+              style.addImage(styleValue!!, styleKey, object :
+                  DownloadMapImageCoroutine.OnAllImagesLoaded {
                   override fun onAllImagesLoaded() {
                       try {
                           setFillPattern(layer, styleValue)
@@ -143,7 +144,7 @@ object RNMBXStyleFactory {
             "lineDasharray" ->
               setLineDasharray(layer, styleValue)
             "linePattern" ->
-              style.addImage(styleValue!!, styleKey, object : OnAllImagesLoaded {
+              style.addImage(styleValue!!, styleKey, object : DownloadMapImageCoroutine.OnAllImagesLoaded {
                   override fun onAllImagesLoaded() {
                       try {
                           setLinePattern(layer, styleValue)
@@ -199,7 +200,8 @@ object RNMBXStyleFactory {
             "iconTextFitPadding" ->
               setIconTextFitPadding(layer, styleValue)
             "iconImage" ->
-              style.addImage(styleValue!!, styleKey, object : OnAllImagesLoaded {
+              style.addImage(styleValue!!, styleKey, object :
+                  DownloadMapImageCoroutine.OnAllImagesLoaded {
                   override fun onAllImagesLoaded() {
                       try {
                           setIconImage(layer, styleValue)
@@ -329,7 +331,8 @@ object RNMBXStyleFactory {
               "textEmissiveStrengthTransition" ->
               setTextEmissiveStrengthTransition(layer, styleValue)
             "iconImageCrossFade" ->
-              style.addImage(styleValue!!, styleKey, object : OnAllImagesLoaded {
+              style.addImage(styleValue!!, styleKey, object :
+                  DownloadMapImageCoroutine.OnAllImagesLoaded {
                   override fun onAllImagesLoaded() {
                       try {
                           setIconImageCrossFade(layer, styleValue)
@@ -463,7 +466,8 @@ object RNMBXStyleFactory {
             "fillExtrusionTranslateAnchor" ->
               setFillExtrusionTranslateAnchor(layer, styleValue)
             "fillExtrusionPattern" ->
-              style.addImage(styleValue!!, styleKey, object : OnAllImagesLoaded {
+              style.addImage(styleValue!!, styleKey, object :
+                  DownloadMapImageCoroutine.OnAllImagesLoaded {
                   override fun onAllImagesLoaded() {
                       try {
                           setFillExtrusionPattern(layer, styleValue)
@@ -699,7 +703,8 @@ object RNMBXStyleFactory {
               "backgroundColorTransition" ->
               setBackgroundColorTransition(layer, styleValue)
             "backgroundPattern" ->
-              style.addImage(styleValue!!, styleKey, object : OnAllImagesLoaded {
+              style.addImage(styleValue!!, styleKey, object :
+                  DownloadMapImageCoroutine.OnAllImagesLoaded {
                   override fun onAllImagesLoaded() {
                       try {
                           setBackgroundPattern(layer, styleValue)

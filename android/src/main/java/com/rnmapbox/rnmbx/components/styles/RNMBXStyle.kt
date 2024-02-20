@@ -4,8 +4,8 @@ import android.content.Context
 import com.facebook.react.bridge.ReadableMap
 import com.mapbox.maps.MapboxMap
 import com.rnmapbox.rnmbx.components.images.ImageInfo
+import com.rnmapbox.rnmbx.utils.DownloadMapImageCoroutine
 import com.rnmapbox.rnmbx.utils.ImageEntry
-import com.rnmapbox.rnmbx.utils.DownloadMapImageTask
 import com.rnmapbox.rnmbx.utils.Logger
 import java.util.AbstractMap
 import java.util.ArrayList
@@ -44,7 +44,7 @@ class RNMBXStyle(private val mContext: Context, reactStyle: ReadableMap?, map: M
     }
 
     @JvmOverloads
-    fun addImage(styleValue: RNMBXStyleValue, styleKey: String, callback: DownloadMapImageTask.OnAllImagesLoaded? = null) {
+    fun addImage(styleValue: RNMBXStyleValue, styleKey: String, callback: DownloadMapImageCoroutine.OnAllImagesLoaded? = null) {
         if (!styleValue.shouldAddImage()) {
             callback?.onAllImagesLoaded()
             return
@@ -57,8 +57,14 @@ class RNMBXStyle(private val mContext: Context, reactStyle: ReadableMap?, map: M
                 imageEntry(styleValue)
             )
         )
-        val task = DownloadMapImageTask(mContext, mMap, null, callback)
-        task.execute(*images)
+        val downloadMapImageCoroutine = DownloadMapImageCoroutine(
+            context = mContext,
+            map = mMap,
+            imageManager = null,
+            callback = callback
+        )
+
+        downloadMapImageCoroutine.downloadImages(images)
     }
 
     init {

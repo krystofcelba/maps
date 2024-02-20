@@ -2,13 +2,11 @@ package com.rnmapbox.rnmbx.components.images
 
 import android.content.Context
 import android.graphics.Bitmap
-import com.rnmapbox.rnmbx.components.images.RNMBXImagesManager
 import com.rnmapbox.rnmbx.components.AbstractMapFeature
 import com.rnmapbox.rnmbx.utils.ImageEntry
 import android.graphics.drawable.BitmapDrawable
 import android.util.DisplayMetrics
 import androidx.core.content.res.ResourcesCompat
-import com.mapbox.bindgen.DataRef
 import com.mapbox.bindgen.Expected
 import com.mapbox.bindgen.None
 import com.mapbox.maps.Image
@@ -19,10 +17,10 @@ import com.mapbox.maps.Style
 import com.rnmapbox.rnmbx.R
 import com.rnmapbox.rnmbx.components.RemovalReason
 import com.rnmapbox.rnmbx.components.mapview.RNMBXMapView
-import com.rnmapbox.rnmbx.components.images.RNMBXImages
 import com.rnmapbox.rnmbx.events.ImageMissingEvent
 import com.rnmapbox.rnmbx.utils.BitmapUtils
-import com.rnmapbox.rnmbx.utils.DownloadMapImageTask
+import com.rnmapbox.rnmbx.utils.DownloadMapImageCoroutine
+import com.rnmapbox.rnmbx.utils.Logger
 import java.nio.ByteBuffer
 import java.util.AbstractMap
 import java.util.ArrayList
@@ -31,15 +29,22 @@ import java.util.HashSet
 
 import com.rnmapbox.rnmbx.v11compat.image.*;
 import java.lang.Float.max
-import java.lang.Math.ceil
 import kotlin.math.ceil
 
-fun Style.addBitmapImage(imageId: String, bitmap: Bitmap, sdf: Boolean = false, stretchX: List<ImageStretches> = listOf(), stretchY: List<ImageStretches> = listOf(), content: ImageContent? = null, scale: Double = 1.0) : Expected<String, None> {
+fun Style.addBitmapImage(
+    imageId: String,
+    bitmap: Bitmap,
+    sdf: Boolean = false,
+    stretchX: List<ImageStretches> = listOf(),
+    stretchY: List<ImageStretches> = listOf(),
+    content: ImageContent? = null,
+    scale: Double = 1.0
+): Expected<String, None> {
     val byteBuffer = ByteBuffer.allocate(bitmap.byteCount)
     bitmap.copyPixelsToBuffer(byteBuffer)
     return this.addStyleImage(
         imageId,
-        (1.0/((160.0/bitmap.density)) * scale).toFloat() ,
+        (1.0 / ((160.0 / bitmap.density)) * scale).toFloat(),
         Image(bitmap.width, bitmap.height, byteBuffer.array().toImageData()),
         sdf,
         stretchX,
@@ -48,14 +53,29 @@ fun Style.addBitmapImage(imageId: String, bitmap: Bitmap, sdf: Boolean = false, 
     )
 }
 
-fun Style.addBitmapImage(nativeImage: NativeImage) : Expected<String, None> {
+fun Style.addBitmapImage(nativeImage: NativeImage): Expected<String, None> {
     val info = nativeImage.info
-    return addBitmapImage(info.name, nativeImage.drawable.bitmap, info.sdf, info.stretchX, info.stretchY, info.content, info.getScaleOr(1.0))
+    return addBitmapImage(
+        info.name,
+        nativeImage.drawable.bitmap,
+        info.sdf,
+        info.stretchX,
+        info.stretchY,
+        info.content,
+        info.getScaleOr(1.0)
+    )
 }
 
-data class ImageInfo(val name: String,  val scale: Double? = 1.0, val sdf: Boolean = false, val stretchX: List<ImageStretches> = listOf(),
-                     val stretchY: List<ImageStretches> = listOf(), val content: ImageContent? = null, val width: Double? = null, val height: Double? = null)
-{
+data class ImageInfo(
+    val name: String,
+    val scale: Double? = 1.0,
+    val sdf: Boolean = false,
+    val stretchX: List<ImageStretches> = listOf(),
+    val stretchY: List<ImageStretches> = listOf(),
+    val content: ImageContent? = null,
+    val width: Double? = null,
+    val height: Double? = null
+) {
     fun getScaleOr(default: Double): Double {
         return scale ?: default;
     }
@@ -64,10 +84,19 @@ data class ImageInfo(val name: String,  val scale: Double? = 1.0, val sdf: Boole
 data class NativeImage(val info: ImageInfo, val drawable: BitmapDrawable);
 
 interface NativeImageUpdater {
-    fun updateImage(imageId: String, bitmap: Bitmap, sdf: Boolean = false, stretchX: List<ImageStretches> = listOf(), stretchY: List<ImageStretches> = listOf(), content: ImageContent? = null, scale: Double = 1.0)
+    fun updateImage(
+        imageId: String,
+        bitmap: Bitmap,
+        sdf: Boolean = false,
+        stretchX: List<ImageStretches> = listOf(),
+        stretchY: List<ImageStretches> = listOf(),
+        content: ImageContent? = null,
+        scale: Double = 1.0
+    )
 }
 
-class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) : AbstractMapFeature(context), NativeImageUpdater {
+class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) :
+    AbstractMapFeature(context), NativeImageUpdater {
     var mCurrentImages: MutableSet<String?>
     var mImageViews = mutableListOf<RNMBXImage>();
     private var mImages: MutableMap<String, ImageEntry>?
@@ -94,6 +123,7 @@ class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) : 
             val name = nativeImage.info.name
             val oldValue = mNativeImages.put(name, nativeImage)
             if (oldValue == null) {
+                newImages[name] = nativeImage
                 newImages[name] = nativeImage
             }
         }
@@ -162,7 +192,7 @@ class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) : 
 
     fun addImagesToStyle(images: Map<String, ImageEntry>?, map: MapboxMap) {
         if (images != null) {
-            addRemoteImages(ArrayList(images.entries), map)
+            //addRemoteImages(ArrayList(images.entries), map)
         }
     }
 
@@ -232,13 +262,16 @@ class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) : 
                 maxX = max(max(info.content.left, info.content.right), maxX)
                 maxY = max(max(info.content.top, info.content.bottom), maxY)
             }
-            return emptyImage(ceil(maxX).toInt()+1, ceil(maxY).toInt()+1)
+            return emptyImage(ceil(maxX).toInt() + 1, ceil(maxY).toInt() + 1)
         } else {
-           return mImagePlaceholder?.toMapboxImage() ?: emptyImage(16, 16)
+            return mImagePlaceholder?.toMapboxImage() ?: emptyImage(16, 16)
         }
     }
 
-    private fun addRemoteImages(imageEntries: List<Map.Entry<String, ImageEntry>>?, map: MapboxMap) {
+    private fun addRemoteImages(
+        imageEntries: List<Map.Entry<String, ImageEntry>>?,
+        map: MapboxMap
+    ) {
         val style = map.getStyle()
         if (style == null || imageEntries == null) return
         val missingImages: MutableList<Map.Entry<String, ImageEntry>> = ArrayList()
@@ -265,9 +298,18 @@ class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) : 
             }
         }
         if (missingImages.size > 0) {
-            val task = DownloadMapImageTask(context, map, mMapView!!.imageManager)
-            val params = missingImages.toTypedArray()
-            task.execute(*params)
+            Logger.e("Images", "missing images: $missingImages.size")
+            val downloadMapImageCoroutine = DownloadMapImageCoroutine(
+                context = context,
+                map = map,
+                imageManager = mMapView!!.imageManager,
+                callback = object : DownloadMapImageCoroutine.OnAllImagesLoaded {
+                    override fun onAllImagesLoaded() {
+                    }
+                }
+            )
+
+            downloadMapImageCoroutine.downloadImages(missingImages.toTypedArray())
         }
     }
 
@@ -283,12 +325,25 @@ class RNMBXImages(context: Context, private val mManager: RNMBXImagesManager) : 
         mImages = HashMap()
         mNativeImages = HashMap()
         if (mImagePlaceholder == null) {
-            mImagePlaceholder = BitmapUtils.getBitmapFromDrawable(ResourcesCompat.getDrawable(context.resources, R.drawable.empty_drawable, null))
+            mImagePlaceholder = BitmapUtils.getBitmapFromDrawable(
+                ResourcesCompat.getDrawable(
+                    context.resources,
+                    R.drawable.empty_drawable,
+                    null
+                )
+            )
         }
     }
 
-    override fun updateImage(imageId: String, bitmap: Bitmap, sdf: Boolean, stretchX: List<ImageStretches>, stretchY: List<ImageStretches>, content: ImageContent?, scale: Double)
-    {
+    override fun updateImage(
+        imageId: String,
+        bitmap: Bitmap,
+        sdf: Boolean,
+        stretchX: List<ImageStretches>,
+        stretchY: List<ImageStretches>,
+        content: ImageContent?,
+        scale: Double
+    ) {
         mMap?.getStyle()?.let {
             it.addBitmapImage(imageId, bitmap, sdf, stretchX, stretchY, content, scale);
         }
